@@ -1,38 +1,12 @@
-#!/usr/bin/env python3
-"""Regenerate the supplementary design set from the frozen estimator
-
-make_figures.py
-===============
-Regenerate the complete arrow-of-time figure set from the frozen estimator and
-the six-dataset corpus.  One entry point:
-
-    python make_figures.py            # writes figs/ and data/arc_results.json
-
-Figure conventions (fixed):
-  * scienceplots ['science','nature'] style, 300 dpi, PNG + PDF
-  * canonical project era palette (harmony_arrow.ERA_COL)
-  * NO titles, NO in-axis text/arrows/annotations -- only axis labels + legends
-  * main-corpus (careful) and Chordonomicon (crowd) kept on SEPARATE figures
-
-Eight figures:
-  1 fig_trajectory     sigma across the six eras (bootstrap CIs)
-  2 fig_multiorder     null-corrected sigma_k, root alphabet, k=2..4
-  3 fig_engine_eras    exact engine decomposition (Baroque/Classical/Romantic/Modern)
-  4 fig_palindrome     Modern palindrome test (loop is a directed motor)
-  5 fig_concentration  Lorenz arrow-concentration curves
-  6 fig_enrichment     descending-fifth engine enrichment per era
-  7 fig_irish          Irish harmony vs melody by mode (SEPARATE corpus)
-  8 fig_chordonomicon  sigma by genre across Chordonomicon (SEPARATE crowd corpus)
-"""
 import os, sys, json
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # find harmony_arrow
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import scienceplots  # noqa: F401  (registers 'science','nature')
+import scienceplots
 
 import estimator as ha
-import _figure_style as _FS   # SUPP_ASPECT / fixed_aspect_bbox: one aspect for the whole supplement
+import _figure_style as _FS
 
 HERE    = os.path.dirname(os.path.abspath(__file__))
 FIGDIR  = os.path.join(HERE, "figs")
@@ -61,8 +35,6 @@ def save(fig, name):
 
 
 def _modern_reference_pools():
-    """POP909 + Jazz raw sequences (full labels, sevenths preserved) keyed by
-    dataset -- the matched modern reference for sizing Chordonomicon's label bias."""
     import zipfile, json, ntpath, posixpath
     import pandas as pd
     recs = pd.read_parquet(ha.ALL_RECORDS)
@@ -88,7 +60,6 @@ def _modern_reference_pools():
 
 
 def compute():
-    """Run every analysis once; return a results dict (also written to JSON)."""
     print("pooling six datasets (dedup, Polish dropped) ...")
     era_pool = ha.load_all_datasets(dedup=True, drop_polish=True)
     eras = [e for e in ha.ERA_ORDER if e in era_pool]
@@ -127,16 +98,6 @@ def compute():
                           "m": ha.sigma_pooled(d["melodic"])}
 
     print("Chordonomicon by genre (bootstrap error bars; sigma is a lower bound) ...")
-    # Chordonomicon is crowd-transcribed and PARTIALLY triad-flattened at an
-    # UNKNOWN rate (absence of a seventh in a transcription is not evidence of
-    # flattening -- the song may simply have none, so the flattened fraction is
-    # not identifiable from the labels).  We therefore do NOT apply a label
-    # correction; measured sigma is a lower bound of unknown tightness and the
-    # only quantifiable uncertainty is statistical (bootstrap SD).  The figure is
-    # RELATIVE-ONLY (genre gradient) and never shares an axis with the expert
-    # magnitude corpora.  `flattening_suppression` (module) reports the MAX
-    # possible upward bias IF fully flattened -- a stated bound in the ledger,
-    # not a per-bar correction.
     crowd = ha.load_chordonomicon_by_genre(CROWD_GENRES, sample=1500)
     for g, seqs in crowd.items():
         m = ha.sigma_pooled(seqs)
@@ -154,13 +115,12 @@ def compute():
     return R
 
 
-# ----------------------------- figures -----------------------------------
 def fig_trajectory(R):
     eras = [e for e in ha.ERA_ORDER if e in R["trajectory"]]
     t = R["trajectory"]
     fig, ax = plt.subplots(figsize=(3.6, 3.0))
     y = [t[e]["sigma"] for e in eras]
-    err = [t[e]["sd"] for e in eras]          # symmetric bootstrap SD (bias-safe)
+    err = [t[e]["sd"] for e in eras]
     ax.bar(range(len(eras)), y, yerr=err, color=[ha.ERA_COL[e] for e in eras],
            width=0.72, capsize=2, error_kw=dict(lw=0.7), zorder=3)
     ax.set_xticks(range(len(eras)))
@@ -242,7 +202,7 @@ def fig_chordonomicon(R):
     g = R["chordonomicon"]
     order = sorted(g, key=lambda k: -g[k]["sigma"])
     y   = [g[k]["sigma"] for k in order]
-    err = [g[k]["err_lo"] for k in order]   # bootstrap SD (statistical only)
+    err = [g[k]["err_lo"] for k in order]
     fig, ax = plt.subplots(figsize=(4.8, 3.0))
     ax.bar(range(len(order)), y, yerr=err, color=ha.ERA_COL["Modern"],
            width=0.72, capsize=2, error_kw=dict(lw=0.7), zorder=3)

@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""Build every supplementary figure from the frozen data
-
-Rebuild every SI panel from the frozen data.
-
-Every figure in `Supp Figures/` must come from this script, so the SI set is
-reproducible and carries no orphan files.  Panels are defined in
-`suppfig_panels.py`; this module only reconstructs their inputs and renders.
-"""
 import os, sys, json, glob
 import numpy as np
 
@@ -17,16 +8,14 @@ import _figure_style as C
 import supp_panel_library as SP
 import matplotlib.pyplot as plt
 
-_p = os.path.dirname(os.path.abspath(__file__))          # walk up to the project root
+_p = os.path.dirname(os.path.abspath(__file__))
 while not all(os.path.isdir(os.path.join(_p, _m)) for _m in ("dat", "src")):
     _p = os.path.dirname(_p)
-_AA = _p                                              # project root
+_AA = _p
 
-DATA = os.environ.get("SI_DATA", os.path.join(_p, "dat"))   # frozen json/npz
+DATA = os.environ.get("SI_DATA", os.path.join(_p, "dat"))
 FLOOR = json.load(open(os.path.join(DATA, "bach_matched_floor.json")))
 OUT  = os.environ.get("SI_OUT", os.path.join(_p, "fig", "panels"))
-# Panels are components: they land in fig/panels. fig/supp holds the finalized
-# set that SI.tex includes, so a rebuild here cannot silently change the paper.
 L = lambda nm: json.load(open(os.path.join(DATA, nm)))
 
 ND = L("null_distributions.json"); AG = L("aggregation_audit.json")
@@ -47,11 +36,8 @@ DRAWS = {r["corpus"]: DR[r["corpus"]] for r in rows if r["corpus"] in DR.files}
 NT = np.array([r["n_trans"] for r in rows], float)
 MEANS = np.array([r["mean"] for r in rows], float)
 SL = ND["floor_scaling"]["log10_slope"]
-IC = float(np.mean(np.log10(MEANS) - SL * np.log10(NT)))   # intercept at the frozen slope
+IC = float(np.mean(np.log10(MEANS) - SL * np.log10(NT)))
 
-# The corpus level is taken from the type-based recomputation, not from the stored
-# record: that file holds a state-based value at the corpus level while its own
-# within-tune level is type-based, so plotting both from it mixed two estimators.
 _IT = json.load(open(os.path.join(DATA, "irish_type_based.json")))
 CO = {"functional_h": _IT["functional"]["sigma"], "modal_h": _IT["modal"]["sigma"],
       "ratio": _IT["ratio"]["value"], "n_functional": _IT["functional"]["n"],
@@ -64,11 +50,6 @@ for key, v in PC["per_era_dataset"].items():
     era, ds = key.split("|")
     ROB[(era, ds)] = dict(n=v["n"], sigma=v["sigma"], ci=tuple(v["ci95"]))
 
-# --- data for every panel -------------------------------------------------
-# Per-setting Irish arrays, recomputed from irish_tunes.json through the project's
-# own _abc_chords loader and compute_mechanism.sigma_invariant, the type-based
-# estimator whose pooled values reproduce irish_type_based.json exactly. The four
-# Irish panels need per-setting distributions and only summaries were frozen.
 _PS = np.load(os.path.join(DATA, "irish_per_setting.npz"))
 PT, NTV = _PS["pt"], _PS["ntv"]
 PER_SET = {"F": _PS["F"], "M": _PS["M"]}
@@ -76,7 +57,7 @@ PDIFF, POOLED = _PS["pdiff"], float(_PS["pooled"])
 SF, SM = float(_PS["sf"]), float(_PS["sm"])
 
 MECH = CHM["per_genre"]
-R_, P_ = (float(x) for x in CHM["pearson"])   # [r, p] across the eleven genres
+R_, P_ = (float(x) for x in CHM["pearson"])
 
 _CR = L("composer_robustness.json")
 JCI = _CR["jackknife"]
@@ -86,12 +67,9 @@ _RM = L("rootmotion_2x2.json")
 PI = _RM["per_interval"]
 IVN = {0: "0", 1: "m2", 2: "M2", 3: "m3", 4: "M3", 5: "5th dn", 6: "TT",
        7: "5th up", 8: "m6", 9: "M6", 10: "m7", 11: "M7"}
-# Keyed by int: p_g1 does IVN[int(k)]. Short forms because the ticks are rotated 45
-# degrees and the spelled-out names collided with each other and with the y axis.
 
 C.style()
 made, failed = [], []
-# EVERY builder in supp_panel_library runs. Nothing is withheld from the supplement.
 JOBS = [("p_a1_surrogates", (rows, DRAWS)), ("p_a2_floor", (rows, NT, SL, IC)),
         ("p_a3_floor_signal", (AG, ORD_A, DA)), ("p_a4_bias", (AG, S, ORD8)),
         ("p_a5_per_tune", (PT,)), ("p_a6_zero_kinds", (PT, NTV)),

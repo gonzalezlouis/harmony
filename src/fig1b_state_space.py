@@ -1,33 +1,3 @@
-#!/usr/bin/env python3
-"""Figure 1b — the 60+1 chord state space, as vector pieces
-
-Fig 1b - the 60+1 state space, as separate vector pieces for Illustrator.
-
-Fig 1 shows a Bach sequence as a codon track, a 4-chord zoom and a 3-node loop,
-none of which tell a reader with no music theory what the STATE SPACE is. This
-script draws that alphabet explicitly: 12 pitch-class roots x 5 chord qualities
-= 60 harmonic states, plus REST = 61.
-
-Pieces written to fig/panels/ (each its own PDF+PNG, assembled by hand):
-  fig1b_key_{maj,min,dom7,dim,aug}   one-octave keyboards, chord tones marked
-  fig1b_circle_of_fifths             the bare fifths ring (no key signatures)
-  fig1b_state_space                  the composed 61-state panel
-  _fig1b_alt_grid                    rejected 12x5 grid alternative (kept for the record)
-
-Cross-figure coherence: FIFTHS, QUAL_FILL and the maj>dom7>min>dim>aug radial
-ORDER are IMPORTED from panel_2c_networks, not re-typed, so the wheel here and
-the network wheels in Fig 2c cannot silently drift apart. Note 2c spells the
-five accidentals as SHARPS (F#, C#, G#, D#, A#), not the mixed sharp/flat
-spelling a textbook circle of fifths uses; matching 2c wins over the textbook.
-
-The one deliberate deviation from 2c: 2c's QUAL_RADIUS packs the aug ring at
-r=0.12, which is fine there (its 85%-mass display rule never draws an aug node)
-but cannot host 12 visible dots here. Radii are respaced evenly with the
-ordering preserved -- see RING_R.
-
-NO titles, NO panel letters, no in-axis commentary: all of that goes on at
-assembly time.
-"""
 import os, sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,48 +6,35 @@ from matplotlib.patches import Rectangle, Circle
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import _figure_style as C
-# Imported, never re-typed: single source of truth shared with Fig 2c.
 from fig2c_networks import FIFTHS, QUAL_FILL, QUAL_RADIUS
 
 C.style()
 
-QCOL = QUAL_FILL                                   # maj/min/dom7/dim/aug
+QCOL = QUAL_FILL
 CHORD_TONES = {"maj": [0, 4, 7], "min": [0, 3, 7], "dom7": [0, 4, 7, 10],
-               "dim": [0, 3, 6], "aug": [0, 4, 8]}   # semitones from root, verified
+               "dim": [0, 3, 6], "aug": [0, 4, 8]}
 SYMBOL = {"maj": "C", "min": "Cm", "dom7": "C7", "dim": "C\u00b0", "aug": "C+"}
-QORDER = ["maj", "dom7", "min", "dim", "aug"]      # 2c's outward->inward ring order
+QORDER = ["maj", "dom7", "min", "dim", "aug"]
 QLABEL = {"maj": "maj", "dom7": "dom7", "min": "min", "dim": "dim", "aug": "aug"}
 
 WHITE_SEMI  = [0, 2, 4, 5, 7, 9, 11, 12]
 BLACK_SEMI  = [1, 3, 6, 8, 10]
 BLACK_AFTER = {1: 0, 3: 1, 6: 3, 8: 4, 10: 5}
-KH, BH, BW  = 4.2, 2.6, 0.58                       # white height, black height, black width
+KH, BH, BW  = 4.2, 2.6, 0.58
 
-# Evenly respaced rings, ORDER preserved from 2c's QUAL_RADIUS (maj outermost).
-_ORD  = sorted(QUAL_RADIUS, key=lambda q: -QUAL_RADIUS[q])       # maj,dom7,min,dim,aug
+_ORD  = sorted(QUAL_RADIUS, key=lambda q: -QUAL_RADIUS[q])
 RING_R = {q: r for q, r in zip(_ORD, [1.30, 1.075, 0.85, 0.625, 0.40])}
 REST_COL = "#8a9199"
 
 
 def _assert_61_visible(ax, drawn):
-    """Count STATE MARKERS THAT ACTUALLY LAND INSIDE THE AXES, not list appends.
-
-    The first version of this check counted len(drawn) and happily passed on a
-    grid whose aug row (12 states) sat below ylim and never rendered. Counting
-    the Circle patches and testing each centre against the live limits is the
-    check that would have caught it, so that is the check that ships.
-    """
     x0, x1 = ax.get_xlim(); y0, y1 = ax.get_ylim()
     inside = lambda p: x0 <= p.center[0] <= x1 and y0 <= p.center[1] <= y1
-    # Identify markers by explicit gid, not by style: Circle.get_fill() returns True
-    # even for facecolor="none", so a style-based test counted hollow REST as filled,
-    # and guide rings (fill=False, large radius) would have counted as hollow.
     marks = [p for p in ax.patches
              if isinstance(p, Circle) and (p.get_gid() or "").startswith("state:")
              and inside(p)]
     filled = [p for p in marks if p.get_gid() == "state:measured"]
     hollow = [p for p in marks if p.get_gid() == "state:rest"]
-    # 60 measured (filled) + REST (hollow) = 61 alphabet states
     assert len(filled) == 60, f"{len(filled)} measured markers visible, expected 60"
     assert len(hollow) == 1, f"{len(hollow)} hollow markers visible, expected 1 (REST)"
     assert len(drawn) == len(set(drawn)) == 61, f"{len(drawn)} labels, {len(set(drawn))} unique"
@@ -85,14 +42,12 @@ def _assert_61_visible(ax, drawn):
 
 
 def _semitone_xy(s):
-    """Centre of the marker for semitone s: low on white keys, high on black keys."""
     if s in WHITE_SEMI:
         return WHITE_SEMI.index(s) + 0.5, 0.80
     return BLACK_AFTER[s] + 1.0, BH - 0.62 + (KH - BH)
 
 
 def keyboard(q):
-    """One octave+1 keyboard (C4..C5) with quality q's chord tones marked on C."""
     fig, ax = plt.subplots(figsize=(1.10, 0.70))
     ax.set_aspect("equal"); ax.axis("off")
     for i in range(len(WHITE_SEMI)):
@@ -103,10 +58,6 @@ def keyboard(q):
     for s in CHORD_TONES[q]:
         x, y = _semitone_xy(s)
         ax.add_patch(Circle((x, y), 0.30, fc=QCOL[q], ec="white", lw=0.5, zorder=4))
-    # The chord symbol is the state's IDENTITY, not commentary: 1-2 chars, and
-    # without it five same-shaped PDFs are distinguishable only by colour, which
-    # invites a mis-assembly. Placed as a free text element (never set_title) so
-    # it can be moved or deleted in Illustrator.
     ax.text(4.0, KH + 0.42, SYMBOL[q], ha="center", va="bottom", fontsize=6.5,
             fontweight="bold", color=QCOL[q])
     ax.set_xlim(-0.15, 8.15); ax.set_ylim(-0.15, KH + 1.35)
@@ -114,11 +65,9 @@ def keyboard(q):
 
 
 def _ang(fi):
-    """2c's angular convention, verbatim: C at 12 o'clock, fifths clockwise."""
     return np.pi / 2 - fi * 2 * np.pi / 12
 
 
-# relative minors, sharp-spelled to match FIFTHS (a is under C, etc.)
 MINORS = ['a', 'e', 'b', r'f$\sharp$', r'c$\sharp$', r'g$\sharp$', r'd$\sharp$',
           r'a$\sharp$', 'f', 'c', 'g', 'd']
 
@@ -148,16 +97,15 @@ def circle_of_fifths(minors=False, name="fig1b_circle_of_fifths", size=2.2):
 
 
 def state_space(name="fig1b_state_space", size=2.75):
-    """Fifths ring x 5 concentric quality rings = 60 dots, REST set apart."""
     fig, ax = plt.subplots(figsize=(size, size))
     ax.set_aspect("equal"); ax.axis("off")
-    drawn = []                                     # every state element, for the count
-    for fi in range(12):                           # spokes
+    drawn = []
+    for fi in range(12):
         a = _ang(fi)
         ax.plot([RING_R["aug"] * np.cos(a), RING_R["maj"] * np.cos(a)],
                 [RING_R["aug"] * np.sin(a), RING_R["maj"] * np.sin(a)],
                 color="#d9dde1", lw=0.35, zorder=0)
-    for q in QORDER:                               # guide rings
+    for q in QORDER:
         ax.add_patch(Circle((0, 0), RING_R[q], fill=False, ec="#e2e6ea", lw=0.35, zorder=0))
     for fi in range(12):
         a = _ang(fi)
@@ -168,16 +116,9 @@ def state_space(name="fig1b_state_space", size=2.75):
             drawn.append(f"{fi}:{q}")
         ax.text(1.52 * np.cos(a), 1.52 * np.sin(a), FIFTHS[fi], ha="center",
                 va="center", fontsize=6.2, fontweight="bold", color="#1A1A1A", zorder=4)
-    # ring identification along the C spoke (up), offset so it clears the dots
     for q in QORDER:
         ax.text(0.105, RING_R[q], QLABEL[q], ha="left", va="center", fontsize=5.0,
                 color="#3a4046", zorder=5)
-    # REST: outside the wheel AND HOLLOW. harmony_arrow.py:81 and config.py:39 both
-    # call REST the 61st state, but every pool builder drops it
-    # (`if e[0] != "REST"`), so it contributes zero measured transitions -- audited
-    # at 0 REST tokens across all eight corpora. Filling it like the other 60 would
-    # assert it participates in sigma. Hollow reuses Fig 2c's legend convention
-    # (filled = contributes, hollow = in the alphabet but not drawn/counted).
     rx, ry = -1.44, -1.44
     ax.add_patch(Circle((rx, ry), 0.072, fc="none", ec=REST_COL, lw=0.7, zorder=3,
                         gid="state:rest"))
@@ -191,7 +132,6 @@ def state_space(name="fig1b_state_space", size=2.75):
 
 
 def state_grid(name="_fig1b_alt_grid"):
-    """Alternative tested and rejected: 12 roots x 5 qualities as a grid."""
     fig, ax = plt.subplots(figsize=(2.75, 1.35))
     ax.set_aspect("equal"); ax.axis("off")
     drawn = []

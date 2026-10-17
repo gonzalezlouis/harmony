@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""Supplementary — Chordonomicon modern-genre breadth
-
-Fig 2b - Chordonomicon modern-genre breadth (SEPARATE, RELATIVE-only).
-
-Chordonomicon is crowd-transcribed and triad-flattened (dom7 3.7-4.0% vs the
-expert CoCoPops 9.4% on the same repertoire), so its sigma is a lower bound of
-unknown tightness -- it is NEVER placed on the magnitude axis with the expert
-corpora.  This panel makes only the WITHIN-corpus relative statement: sigma
-tracks harmonic richness (jazz/soul high, punk/rock low).  Error bars are
-statistical bootstrap SD only; no label correction (the flattened fraction is
-not identifiable, so a "restored" bar would be fabricated)."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np

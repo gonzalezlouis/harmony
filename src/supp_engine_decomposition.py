@@ -1,23 +1,7 @@
-"""Supplementary — net current by harmonic mechanism
-
-Regenerate the 25x12 invariant-type current matrix from the canonical pools, then
-render the engine decomposition on it.
-
-The stored transfer_matrix.npz reproduces Table 1's J_tot for six of eight corpora but
-runs 11% high for ragtime and 2.4% high for Billboard pop, so it is stale for those two.
-Recomputing from canonical_pools reproduces all eight, and that is what is used here.
-
-Engine classes follow the original fig_engine_eras design, now identifiable because the
-row labels are the 25 ordered quality pairs:
-  V7->I cadence      row dom7->maj at the descending fifth
-  ii->V cycle        row min->dom7  at the descending fifth
-  other fifth        any other quality pair at the descending fifth
-  unclassified       every other root motion
-"""
 import os, sys, json
 import numpy as np
 _HERE = os.path.dirname(os.path.abspath(__file__))
-AA = os.path.dirname(_HERE)          # project root
+AA = os.path.dirname(_HERE)
 DAT = os.path.join(AA, "dat")
 FIGSUPP = os.path.join(AA, "fig", "supp")
 sys.path.insert(0, _HERE)
@@ -65,7 +49,6 @@ if __name__ == "__main__":
     np.savez(os.path.join(DAT, "transfer_matrix_canonical.npz"),
              rows=np.array(ROWS), **MATS)
 
-    # ---- engine decomposition ----
     iC, iII = ROWS.index("dom7->maj"), ROWS.index("min->dom7")
     ENG = {}
     for k in ORD:

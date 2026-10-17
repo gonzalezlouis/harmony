@@ -1,13 +1,3 @@
-"""Supplementary panels: palindrome control, current concentration, fifth share
-
-Three panels SI.tex includes as aligned_palindrome, aligned_concentration and
-aligned_fifth_share.  Their original producer is not in src/ any more -- it went to
-archive/ with the old analysis tree -- so the figures existed on disk with no way to
-rebuild them.  This regenerates all three from the canonical pools with the paper's
-own type-based estimator, at the single supplementary aspect ratio.
-
-Every number is computed here; nothing is read from a frozen summary.
-"""
 import os, sys, numpy as np, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -38,15 +28,7 @@ def _sigma(seqs):
     return float(CM.sigma_invariant(seqs)[0])
 
 
-# ------------------------------------------------------------------ palindrome
 def panel_palindrome(ALL, corpus="Jazz", seed=0):
-    """sigma under four order operations.
-
-    Reversing every work leaves sigma unchanged, because the estimator is symmetric
-    in the two directions of a transition type.  Palindromising each work forces
-    detailed balance and sigma vanishes identically.  Shuffling the order destroys
-    it.  Together these say the statistic reads chord ORDER and nothing else.
-    """
     rng = np.random.default_rng(seed)
     sq = ALL[corpus]
     vals = {
@@ -68,9 +50,7 @@ def panel_palindrome(ALL, corpus="Jazz", seed=0):
     return SPL._fin(fig, ax, "aligned_palindrome", OUT), vals
 
 
-# --------------------------------------------------------------- concentration
 def _current_shares(seqs):
-    """Descending-sorted share of total net current carried by each transition type."""
     Ct = CM.invariant_counts(seqs)
     J = []
     for t, f in Ct.items():
@@ -92,21 +72,13 @@ def panel_concentration(ALL):
     ax.set_xlabel("fraction of transition types, ranked by current")
     ax.set_ylabel("cumulative share of net current")
     ax.set_xlim(0, 1); ax.set_ylim(0, 1.02)
-    # Both axes start at zero, so the "0.0" x tick sits on the "0.0" y tick in the
-    # corner.  One of the two is redundant.
     ax.set_xticks([0.2, 0.4, 0.6, 0.8, 1.0])
     ax.legend(loc="lower right", frameon=False, fontsize=5.6, ncol=2,
               handlelength=1.3, handletextpad=0.5, labelspacing=0.2, borderpad=0.0)
     return SPL._fin(fig, ax, "aligned_concentration", OUT)
 
 
-# ----------------------------------------------------------------- fifth share
 def _fifth_share(seqs):
-    """Share of total positive net current carried by descending-fifth root motion.
-
-    A type is (root motion, quality from, quality to); descending fifth is +5
-    semitones mod 12, the same index the root-motion sweep highlights.
-    """
     Ct = CM.invariant_counts(seqs)
     tot = fifth = 0.0
     for t, f in Ct.items():

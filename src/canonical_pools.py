@@ -1,17 +1,3 @@
-"""Canonical eight-corpus pooling, asserted against Table 1
-
-Canonical eight-corpus pooling for the harmony arrow-of-time paper.
-
-Table 1's corpora had no single constructor in the codebase: the score corpora are
-assembled from the sequence archive plus the per-work record table, with three filters
-that are easy to miss, and the modern corpora come from separate loaders.  This module
-puts the procedure in one place and asserts it reproduces the reported work counts.
-
-Filters for the score corpora (all three are load-bearing):
-  1. dataset must be KernScores (performance-MIDI collections are a separate route)
-  2. composer "Various (Polish)" is excluded
-  3. a work enters only if len(drop_repeats(chords)) >= ha.MIN_LEN, which is 8
-"""
 import os, sys, json, zipfile, ntpath, posixpath
 from collections import Counter
 
@@ -70,9 +56,6 @@ if __name__ == "__main__":
 
 
 def build_modern(AA):
-    """CoCoPops (expert Billboard annotations), POP909 (Mandopop), Jazz (iRb).
-    POP909 and Jazz come out of the sequence archive keyed by dataset; CoCoPops
-    has its own Humdrum parser in the estimator module."""
     import pandas as pd, estimator as ha
     bn = lambda p: ntpath.basename(p) if "\\" in p else posixpath.basename(p)
     recs = pd.read_parquet(ha.ALL_RECORDS)

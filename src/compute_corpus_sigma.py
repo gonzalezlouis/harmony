@@ -1,32 +1,9 @@
-#!/usr/bin/env python3
-"""Compute pooled sigma for every corpus
-
-compute_final.py - regenerate data/final_data.json for the final figure panels.
-
-Separates the (slow, stochastic) estimator run from the (fast, deterministic)
-drawing in panels/*.py.  Run this once; then each panel script just reads the JSON.
-
-Canonical decisions baked in here:
-  * estimator = sigma_bidirectional (one-way edges excluded; NO pseudocount).
-    The parquet I_inf/I_w/tau columns are pseudocount-inflated ~20-50x -- never
-    used for reported magnitudes.
-  * classical trajectory = KernScores SCORE notation only (one consistent
-    music21-chordify extraction across all eras).  Performance MIDI (GiantMIDI,
-    MAESTRO, ASAP) is EXCLUDED from the trajectory: chordify + sustain pedal
-    suppresses sigma to ~0.32x of the score value, and the perf/score mix ratio
-    worsens over time, which manufactured a spurious "plateau descent".
-  * modern magnitude anchors = EXPERT annotations (POP909, Jazz iRb, CoCoPops).
-  * Chordonomicon = crowd/triad-flattened -> RELATIVE-only, its own panel.
-  * 'Various (Polish)' bucket dropped (early-Baroque mislabeled Romantic).
-  * dedup by piece basename (the sequence cache double-stores POP909).
-"""
 import os, sys, json, glob, zipfile, ntpath, posixpath
 import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-# config / irreversibility_v2 are siblings in src/
 sys.path.insert(0, HERE)
 import estimator as ha
 from irreversibility_v2 import count_bigrams, sigma_bidirectional, drop_repeats
@@ -44,7 +21,6 @@ def boot(seqs, B=300, seed=0):
     return float(np.mean(v)), float(np.std(v))
 
 def pool_by_era_dataset():
-    """{(era,dataset): [seq,...]}, dedup by basename, Polish dropped."""
     recs = pd.read_parquet(RECORDS)
     era_of  = {_bn(r.midi_path): r.era      for r in recs.itertuples()}
     ds_of   = {_bn(r.midi_path): r.dataset  for r in recs.itertuples()}
@@ -66,7 +42,6 @@ def main():
     ks = lambda era: pools.get((era, "KernScores"), [])
     D = {}
 
-    # ---- Fig 2a: trajectory (classical=KernScores score; modern=expert) ----
     traj = {}
     for era in ["Renaissance", "Baroque", "Classical", "Romantic", "Late-Romantic"]:
         sq = ks(era)
@@ -79,7 +54,6 @@ def main():
         _, sd = boot(sq); traj[nm] = dict(sigma=sig(sq), sd=sd, n=len(sq), src="expert")
     D["trajectory"] = traj
 
-    # ---- chordify performance-suppression ratio (Fig 2 caption fact) ----
     ratios = {}
     for era in ["Baroque", "Classical", "Romantic", "Late-Romantic"]:
         perf = sum((pools.get((era, ds), []) for ds in ["GiantMIDI", "MAESTRO", "ASAP"]), [])
@@ -87,18 +61,15 @@ def main():
             ratios[era] = sig(perf) / sig(ks(era))
     D["chordify_suppression"] = dict(ratios=ratios, mean=float(np.mean(list(ratios.values()))))
 
-    # ---- Fig 2b: Chordonomicon genre breadth (relative-only) ----
     crowd = ha.load_chordonomicon_by_genre(
         ["pop", "rock", "country", "alternative", "punk", "metal",
          "rap", "soul", "jazz", "electronic", "reggae"], sample=1500)
     D["chordonomicon"] = {g: dict(sigma=sig(s), sd=boot(s, B=150, seed=1)[1]) for g, s in crowd.items()}
 
-    # ---- Fig 3: Irish controlled experiment ----
     irish = ha.load_irish_by_mode()
     D["irish"] = {mc: dict(h=sig(d["harmonic"]), m=sig(d["melodic"]),
                            nh=len(d["harmonic"]), nm=len(d["melodic"])) for mc, d in irish.items()}
 
-    # ---- Fig 4a: palindrome on the three modern corpora ----
     chord_all = [s for g in crowd.values() for s in g]
     def palin(seqs, seed=0):
         rng = np.random.default_rng(seed)
@@ -106,7 +77,6 @@ def main():
                     shuffled=sig([list(rng.permutation(s)) for s in seqs]))
     D["palindrome"] = dict(pop909=palin(pop, 909), jazz=palin(jazz, 1), chordonomicon=palin(chord_all, 2))
 
-    # ---- Fig 4b: engine decomposition (exact edge J*A), incl. Jazz ----
     D["engine"] = {nm: ha.collapse_engines(ha.engine_decomposition(sq)[0]) for nm, sq in
                    [("Baroque", ks("Baroque")), ("Classical", ks("Classical")),
                     ("Romantic", ks("Romantic")), ("POP909", pop), ("Jazz", jazz)]}
