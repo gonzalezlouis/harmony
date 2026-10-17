@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# data lives in the Zenodo deposit, never in the repository -- see DATA.md
+dat/*
+!dat/.gitkeep
+!dat/output/
+dat/output/*
+!dat/output/.gitkeep
+
+# rendered panels -- every figure is produced by running its module
+fig/panels/*
+fig/supp/*
+!fig/**/.gitkeep
